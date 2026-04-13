@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kcal">
+<meta name="theme-color" content="#0a0a0f">
+<title>Diario Alimentare</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+
+:root{
+  --bg:#0a0a0f;
+  --bg2:#111118;
+  --bg3:#1a1a24;
+  --glass:rgba(255,255,255,0.04);
+  --glass2:rgba(255,255,255,0.07);
+  --border:rgba(255,255,255,0.08);
+  --border2:rgba(255,255,255,0.14);
+  --text:#f0f0f8;
+  --text2:rgba(240,240,248,0.5);
+  --text3:rgba(240,240,248,0.28);
+  --accent:#7c6aff;
+  --accent2:#a855f7;
+  --green:#22d3a0;
+  --red:#ff5757;
+  --orange:#ff9f43;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+  --font-display:'Syne',sans-serif;
+  --font-body:'DM Sans',sans-serif;
+}
+
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);overflow:hidden}
+body{display:flex;flex-direction:column;position:relative}
+
+/* BG ORBS */
+.orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0}
+.orb1{width:300px;height:300px;background:rgba(124,106,255,0.15);top:-80px;right:-60px}
+.orb2{width:250px;height:250px;background:rgba(168,85,247,0.1);bottom:20%;left:-80px}
+.orb3{width:200px;height:200px;background:rgba(34,211,160,0.08);bottom:10%;right:10%}
+
+/* HEADER */
+.header{
+  position:relative;z-index:10;
+  padding:calc(var(--safe-top) + 14px) 20px 14px;
+  background:rgba(10,10,15,0.85);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border-bottom:0.5px solid var(--border);
+}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.app-name{font-family:var(--font-display);font-size:22px;font-weight:800;letter-spacing:-0.5px;background:linear-gradient(135deg,#f0f0f8 0%,rgba(124,106,255,0.9) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.target-wrap{display:flex;align-items:center;gap:8px}
+.target-box{
+  display:flex;align-items:center;gap:6px;
+  background:var(--glass2);border:0.5px solid var(--border2);
+  border-radius:20px;padding:5px 12px;
+}
+.target-icon{font-size:13px}
+.target-input{
+  width:48px;border:none;background:transparent;color:var(--accent);
+  font-size:14px;font-weight:600;text-align:center;outline:none;
+  font-family:var(--font-display);
+}
+.target-unit{font-size:12px;color:var(--text3);font-family:var(--font-body)}
+.save-btn{
+  display:flex;align-items:center;gap:5px;
+  padding:7px 16px;border-radius:20px;border:none;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;font-size:13px;font-weight:600;font-family:var(--font-display);
+  cursor:pointer;letter-spacing:0.02em;
+  transition:opacity 0.2s,transform 0.15s;
+}
+.save-btn:active{opacity:0.8;transform:scale(0.97)}
+.save-btn.saving{opacity:0.5;pointer-events:none}
+
+/* WEEK NAV */
+.week-nav{display:flex;align-items:center;justify-content:space-between}
+.w-btn{
+  width:34px;height:34px;border-radius:50%;border:0.5px solid var(--border2);
+  background:var(--glass);color:var(--text2);font-size:17px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:background 0.2s,color 0.2s;
+}
+.w-btn:active{background:var(--glass2);color:var(--text)}
+.week-info{text-align:center}
+.week-key{font-family:var(--font-display);font-size:16px;font-weight:700;letter-spacing:-0.3px}
+.week-dates{font-size:12px;color:var(--text3);margin-top:2px}
+
+/* SUMMARY */
+.summary{
+  position:relative;z-index:10;
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:1px;background:var(--border);
+  border-bottom:0.5px solid var(--border);
+  flex-shrink:0;
+}
+.sum-cell{
+  background:rgba(10,10,15,0.9);backdrop-filter:blur(10px);
+  padding:12px 8px;text-align:center;
+}
+.sum-num{
+  font-family:var(--font-display);font-size:18px;font-weight:700;
+  letter-spacing:-0.5px;color:var(--text);
+  transition:color 0.3s;
+}
+.sum-num.ok{color:var(--green)}
+.sum-num.over{color:var(--red)}
+.sum-num.warn{color:var(--orange)}
+.sum-lbl{font-size:9px;color:var(--text3);margin-top:2px;text-transform:uppercase;letter-spacing:0.06em}
+
+/* PROGRESS */
+.prog-wrap{
+  position:relative;z-index:10;
+  padding:0 20px 10px;
+  background:rgba(10,10,15,0.9);
+  border-bottom:0.5px solid var(--border);
+  flex-shrink:0;
+}
+.prog-track{height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;margin-top:8px}
+.prog-fill{height:3px;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width 0.5s cubic-bezier(.4,0,.2,1)}
+.prog-fill.over{background:linear-gradient(90deg,var(--orange),var(--red))}
+.prog-labels{display:flex;justify-content:space-between;margin-top:5px}
+.prog-lbl{font-size:10px;color:var(--text3)}
+
+/* SCROLL */
+.scroll{
+  flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:14px 16px calc(var(--safe-bot) + 20px);
+  position:relative;z-index:5;
+}
+.scroll::-webkit-scrollbar{display:none}
+
+/* DAY CARD */
+.day-card{
+  background:var(--glass);
+  border:0.5px solid var(--border);
+  border-radius:18px;margin-bottom:10px;overflow:hidden;
+  transition:border-color 0.3s;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+}
+.day-card.has-data{border-color:rgba(124,106,255,0.2)}
+
+.day-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;cursor:pointer;
+}
+.day-left{display:flex;align-items:center;gap:10px}
+.day-indicator{
+  width:32px;height:32px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--glass2);border:0.5px solid var(--border2);
+  font-family:var(--font-display);font-size:11px;font-weight:700;
+  color:var(--text3);transition:all 0.3s;flex-shrink:0;
+}
+.day-indicator.ok{background:rgba(34,211,160,0.12);border-color:rgba(34,211,160,0.3);color:var(--green)}
+.day-indicator.over{background:rgba(255,87,87,0.12);border-color:rgba(255,87,87,0.3);color:var(--red)}
+.day-indicator.partial{background:rgba(124,106,255,0.12);border-color:rgba(124,106,255,0.3);color:var(--accent)}
+.day-name{font-family:var(--font-display);font-size:15px;font-weight:700;letter-spacing:-0.2px}
+.day-right{display:flex;align-items:center;gap:8px}
+.day-kcal-badge{
+  font-family:var(--font-display);font-size:13px;font-weight:600;
+  color:var(--text3);transition:color 0.3s;
+}
+.day-kcal-badge.ok{color:var(--green)}
+.day-kcal-badge.over{color:var(--red)}
+.day-kcal-badge.partial{color:var(--accent)}
+.chevron{font-size:12px;color:var(--text3);transition:transform 0.25s}
+.chevron.open{transform:rotate(180deg)}
+
+/* DAY BODY */
+.day-body{display:none;border-top:0.5px solid var(--border);padding:4px 0}
+.day-body.open{display:block}
+
+/* MEAL ROW */
+.meal-row{padding:10px 16px;border-bottom:0.5px solid rgba(255,255,255,0.04)}
+.meal-row:last-of-type{border-bottom:none}
+.meal-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.meal-name{font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em}
+.meal-kcal{
+  font-family:var(--font-display);font-size:12px;font-weight:600;
+  color:var(--accent);opacity:0;transition:opacity 0.3s;
+}
+.meal-kcal.visible{opacity:1}
+.meal-row-input{display:flex;gap:8px;align-items:flex-start}
+.meal-ta{
+  flex:1;background:rgba(255,255,255,0.03);
+  border:0.5px solid var(--border);border-radius:10px;
+  color:var(--text);font-size:15px;font-family:var(--font-body);font-weight:300;
+  padding:9px 12px;resize:none;min-height:38px;line-height:1.45;
+  outline:none;transition:border-color 0.2s,background 0.2s;
+  -webkit-appearance:none;
+}
+.meal-ta::placeholder{color:var(--text3);font-style:italic;font-size:14px}
+.meal-ta:focus{border-color:rgba(124,106,255,0.4);background:rgba(124,106,255,0.04)}
+.calc-btn{
+  width:38px;height:38px;flex-shrink:0;border-radius:10px;border:none;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity 0.2s,transform 0.15s;
+}
+.calc-btn:active{opacity:0.75;transform:scale(0.93)}
+.calc-btn.loading{background:var(--glass2);border:0.5px solid var(--border2)}
+.spin{display:inline-block;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.meal-nota{font-size:11px;color:var(--text3);margin-top:5px;font-style:italic;min-height:14px;line-height:1.4}
+
+/* DAY FOOTER */
+.day-footer{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 16px 12px;
+}
+.day-tot{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text2)}
+.calc-all-btn{
+  font-size:12px;font-weight:500;color:var(--accent);
+  background:none;border:none;cursor:pointer;font-family:var(--font-body);
+  padding:4px 0;
+}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:calc(var(--safe-bot)+20px);left:50%;
+  transform:translateX(-50%) translateY(60px);
+  background:rgba(26,26,36,0.95);backdrop-filter:blur(20px);
+  border:0.5px solid var(--border2);
+  color:var(--text);padding:11px 20px;border-radius:22px;
+  font-size:13px;font-weight:500;
+  transition:transform 0.35s cubic-bezier(.34,1.56,.64,1);
+  z-index:200;white-space:nowrap;pointer-events:none;
+}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.ok{border-color:rgba(34,211,160,0.4);color:var(--green)}
+.toast.err{border-color:rgba(255,87,87,0.4);color:var(--red)}
+
+/* LOADER */
+.loader{
+  position:fixed;inset:0;background:rgba(10,10,15,0.75);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  display:none;align-items:center;justify-content:center;z-index:300;
+}
+.loader.show{display:flex}
+.loader-box{
+  background:var(--bg3);border:0.5px solid var(--border2);
+  border-radius:20px;padding:28px 36px;text-align:center;
+}
+.loader-ring{
+  width:36px;height:36px;border:2.5px solid var(--border2);
+  border-top-color:var(--accent);border-radius:50%;
+  animation:spin 0.7s linear infinite;margin:0 auto 12px;
+}
+.loader-txt{font-size:13px;color:var(--text2);font-family:var(--font-body)}
+
+/* EMPTY STATE */
+.empty-day{
+  padding:16px;text-align:center;
+  font-size:12px;color:var(--text3);font-style:italic;
+}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.day-card{animation:fadeUp 0.4s ease both}
+.day-card:nth-child(1){animation-delay:0.03s}
+.day-card:nth-child(2){animation-delay:0.07s}
+.day-card:nth-child(3){animation-delay:0.11s}
+.day-card:nth-child(4){animation-delay:0.15s}
+.day-card:nth-child(5){animation-delay:0.19s}
+.day-card:nth-child(6){animation-delay:0.23s}
+.day-card:nth-child(7){animation-delay:0.27s}
+</style>
+</head>
+<body>
+
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+
+<div class="header">
+  <div class="header-top">
+    <div class="app-name">Kcal Diary</div>
+    <div class="target-wrap">
+      <div class="target-box">
+        <span class="target-icon">🎯</span>
+        <input class="target-input" id="targetInput" type="number" value="1600" min="500" max="6000" oninput="updateSummary()">
+        <span class="target-unit">kcal</span>
+      </div>
+      <button class="save-btn" id="saveBtn" onclick="saveWeek()">
+        <span id="saveTxt">Salva</span>
+      </button>
+    </div>
+  </div>
+  <div class="week-nav">
+    <button class="w-btn" onclick="changeWeek(-1)">‹</button>
+    <div class="week-info">
+      <div class="week-key" id="weekKey"></div>
+      <div class="week-dates" id="weekDates"></div>
+    </div>
+    <button class="w-btn" onclick="changeWeek(1)">›</button>
+  </div>
+</div>
+
+<div class="summary">
+  <div class="sum-cell"><div class="sum-num" id="sAvg">—</div><div class="sum-lbl">Media</div></div>
+  <div class="sum-cell"><div class="sum-num" id="sTot">—</div><div class="sum-lbl">Totale</div></div>
+  <div class="sum-cell"><div class="sum-num" id="sOk">—</div><div class="sum-lbl">Target</div></div>
+  <div class="sum-cell"><div class="sum-num" id="sBal">—</div><div class="sum-lbl">Bilancio</div></div>
+</div>
+<div class="prog-wrap">
+  <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+  <div class="prog-labels">
+    <span class="prog-lbl" id="progLbl">—</span>
+    <span class="prog-lbl" id="progPct">—</span>
+  </div>
+</div>
+
+<div class="scroll" id="scroll"></div>
+
+<div class="toast" id="toast"></div>
+<div class="loader" id="loader">
+  <div class="loader-box">
+    <div class="loader-ring"></div>
+    <div class="loader-txt" id="loaderTxt">Caricamento...</div>
+  </div>
+</div>
+
+<script>
+const WORKER = 'https://food-diary-worker.davide-cori93.workers.dev';
+const DAYS = ['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
+const DAY_SHORT = ['LUN','MAR','MER','GIO','VEN','SAB','DOM'];
+const MEALS = ['Colazione','Spuntino','Pranzo','Merenda','Cena'];
+const PH = [
+  'cappuccino, cornetto, yogurt...',
+  'frutta, mandorle, crackers...',
+  'pasta, riso, insalata, secondo...',
+  'yogurt greco, frutta, barretta...',
+  'pollo, pesce, verdure, pane...',
+];
+
+let weekOffset = 0;
+let state = {};
+let openDays = new Set([new Date().getDay() === 0 ? 6 : new Date().getDay() - 1]);
+
+// ─── Week helpers ────────────────────────────────
+function getWeekKey(off = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + off * 7);
+  const jan4 = new Date(d.getFullYear(), 0, 4);
+  const wn = Math.ceil(((d - jan4) / 86400000 + jan4.getDay() + 1) / 7);
+  return `${d.getFullYear()}-W${String(wn).padStart(2,'0')}`;
+}
+function getWeekDates(off = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + off * 7);
+  const day = d.getDay() || 7;
+  const mon = new Date(d); mon.setDate(d.getDate() - day + 1);
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const fmt = x => x.toLocaleDateString('it-IT',{day:'numeric',month:'short'});
+  return `${fmt(mon)} — ${fmt(sun)}`;
+}
+function changeWeek(dir) {
+  weekOffset += dir;
+  renderHeader();
+  loadOrInit();
+}
+function renderHeader() {
+  document.getElementById('weekKey').textContent = getWeekKey(weekOffset);
+  document.getElementById('weekDates').textContent = getWeekDates(weekOffset);
+}
+
+// ─── State ───────────────────────────────────────
+function getWeek() {
+  const k = getWeekKey(weekOffset);
+  if (!state[k]) state[k] = { days: DAYS.map((n,i) => ({ name:n, short:DAY_SHORT[i], meals: MEALS.map(l => ({ label:l, text:'', kcal:null, nota:'' })) })) };
+  return state[k];
+}
+function getTarget() { return parseInt(document.getElementById('targetInput').value) || 1600; }
+
+// ─── Load ────────────────────────────────────────
+async function loadOrInit() {
+  const k = getWeekKey(weekOffset);
+  if (state[k]) { render(); return; }
+  showLoader('Carico settimana...');
+  try {
+    const r = await fetch(`${WORKER}/load?week=${k}`);
+    const d = await r.json();
+    if (d.days) {
+      // Merge con struttura default per preservare short names
+      state[k] = { days: DAYS.map((n,i) => ({ name:n, short:DAY_SHORT[i], meals: d.days[i]?.meals || MEALS.map(l=>({label:l,text:'',kcal:null,nota:''})) })) };
+    } else {
+      state[k] = { days: DAYS.map((n,i) => ({ name:n, short:DAY_SHORT[i], meals: MEALS.map(l=>({label:l,text:'',kcal:null,nota:''})) })) };
+    }
+  } catch {
+    state[k] = { days: DAYS.map((n,i) => ({ name:n, short:DAY_SHORT[i], meals: MEALS.map(l=>({label:l,text:'',kcal:null,nota:''})) })) };
+    toast('Modalità offline', 'warn');
+  }
+  hideLoader();
+  render();
+}
+
+// ─── Render ──────────────────────────────────────
+function render() {
+  const { days } = getWeek();
+  const scroll = document.getElementById('scroll');
+  scroll.innerHTML = '';
+  days.forEach((day, di) => {
+    const hasKcal = day.meals.some(m => m.kcal !== null);
+    const tot = hasKcal ? day.meals.reduce((s,m) => s+(m.kcal||0), 0) : null;
+    const tg = getTarget();
+    const status = tot === null ? '' : tot > tg*1.1 ? 'over' : tot >= tg*0.85 ? 'ok' : 'partial';
+    const isOpen = openDays.has(di);
+
+    const card = document.createElement('div');
+    card.className = 'day-card' + (hasKcal ? ' has-data' : '');
+    card.id = `dc-${di}`;
+    card.innerHTML = `
+      <div class="day-hdr" onclick="toggleDay(${di})">
+        <div class="day-left">
+          <div class="day-indicator ${status}" id="di-${di}">${day.short}</div>
+          <div class="day-name">${day.name}</div>
+        </div>
+        <div class="day-right">
+          <div class="day-kcal-badge ${status}" id="dk-${di}">${tot !== null ? tot.toLocaleString('it-IT') + ' kcal' : ''}</div>
+          <div class="chevron ${isOpen?'open'}" id="chev-${di}">▾</div>
+        </div>
+      </div>
+      <div class="day-body ${isOpen?'open':''}" id="db-${di}">
+        ${day.meals.map((m,mi) => `
+          <div class="meal-row" id="mr-${di}-${mi}">
+            <div class="meal-meta">
+              <span class="meal-name">${m.label}</span>
+              <span class="meal-kcal ${m.kcal!==null?'visible':''}" id="mk-${di}-${mi}">${m.kcal!==null ? m.kcal+' kcal' : ''}</span>
+            </div>
+            <div class="meal-row-input">
+              <textarea class="meal-ta" id="inp-${di}-${mi}" rows="1"
+                placeholder="${PH[mi]}"
+                oninput="autoH(this);getWeek().days[${di}].meals[${mi}].text=this.value"
+              >${m.text}</textarea>
+              <button class="calc-btn" id="cb-${di}-${mi}" onclick="calcMeal(${di},${mi})">⚡</button>
+            </div>
+            <div class="meal-nota" id="mn-${di}-${mi}">${m.nota||''}</div>
+          </div>
+        `).join('')}
+        <div class="day-footer">
+          <div class="day-tot" id="dt-${di}">${tot!==null ? 'Totale: '+tot.toLocaleString('it-IT')+' kcal' : ''}</div>
+          <button class="calc-all-btn" onclick="calcDay(${di})">Calcola tutto ⚡</button>
+        </div>
+      </div>`;
+    scroll.appendChild(card);
+  });
+  setTimeout(() => document.querySelectorAll('.meal-ta').forEach(autoH), 30);
+  updateSummary();
+}
+
+function toggleDay(di) {
+  openDays.has(di) ? openDays.delete(di) : openDays.add(di);
+  const open = openDays.has(di);
+  document.getElementById(`db-${di}`)?.classList.toggle('open', open);
+  document.getElementById(`chev-${di}`)?.classList.toggle('open', open);
+}
+
+function autoH(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+
+// ─── Calcolo ─────────────────────────────────────
+async function calcMeal(di, mi) {
+  const meal = getWeek().days[di].meals[mi];
+  const text = meal.text.trim();
+  if (!text) return;
+  setBtnLoad(di, mi, true);
+  try {
+    const r = await fetch(`${WORKER}/kcal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, meal: MEALS[mi], day: DAYS[di] }),
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    meal.kcal = d.kcal;
+    meal.nota = d.nota || '';
+    updateMealUI(di, mi);
+    updateDayUI(di);
+    updateSummary();
+  } catch(e) { toast('Errore: ' + e.message, 'err'); }
+  setBtnLoad(di, mi, false);
+}
+
+async function calcDay(di) {
+  const meals = getWeek().days[di].meals;
+  for (let mi = 0; mi < meals.length; mi++) {
+    if (meals[mi].text.trim()) await calcMeal(di, mi);
+  }
+}
+
+function setBtnLoad(di, mi, on) {
+  const btn = document.getElementById(`cb-${di}-${mi}`);
+  if (!btn) return;
+  btn.disabled = on;
+  btn.className = 'calc-btn' + (on ? ' loading' : '');
+  btn.innerHTML = on ? '<span class="spin">◌</span>' : '⚡';
+}
+
+function updateMealUI(di, mi) {
+  const m = getWeek().days[di].meals[mi];
+  const k = document.getElementById(`mk-${di}-${mi}`);
+  const n = document.getElementById(`mn-${di}-${mi}`);
+  if (k) { k.textContent = m.kcal !== null ? m.kcal + ' kcal' : ''; k.classList.toggle('visible', m.kcal !== null); }
+  if (n) n.textContent = m.nota || '';
+}
+
+function updateDayUI(di) {
+  const meals = getWeek().days[di].meals;
+  const hasKcal = meals.some(m => m.kcal !== null);
+  const tot = hasKcal ? meals.reduce((s,m) => s+(m.kcal||0), 0) : null;
+  const tg = getTarget();
+  const status = tot === null ? '' : tot > tg*1.1 ? 'over' : tot >= tg*0.85 ? 'ok' : 'partial';
+
+  const ind = document.getElementById(`di-${di}`);
+  const badge = document.getElementById(`dk-${di}`);
+  const dt = document.getElementById(`dt-${di}`);
+  const card = document.getElementById(`dc-${di}`);
+
+  if (ind) ind.className = `day-indicator ${status}`;
+  if (badge) { badge.className = `day-kcal-badge ${status}`; badge.textContent = tot !== null ? tot.toLocaleString('it-IT') + ' kcal' : ''; }
+  if (dt) dt.textContent = tot !== null ? 'Totale: ' + tot.toLocaleString('it-IT') + ' kcal' : '';
+  if (card) card.classList.toggle('has-data', hasKcal);
+}
+
+// ─── Summary ─────────────────────────────────────
+function updateSummary() {
+  const { days } = getWeek();
+  const tg = getTarget();
+  const daysWithData = days.filter(d => d.meals.some(m => m.kcal !== null));
+
+  if (!daysWithData.length) {
+    ['sAvg','sTot','sOk','sBal'].forEach(id => {
+      const el = document.getElementById(id);
+      el.textContent = '—'; el.className = 'sum-num';
+    });
+    document.getElementById('progFill').style.width = '0%';
+    document.getElementById('progLbl').textContent = 'Nessun dato';
+    document.getElementById('progPct').textContent = '';
+    return;
+  }
+
+  const sum = days.reduce((s,d) => s + d.meals.reduce((ss,m) => ss+(m.kcal||0), 0), 0);
+  const avg = Math.round(sum / daysWithData.length);
+  const ok = daysWithData.filter(d => { const t = d.meals.reduce((s,m)=>s+(m.kcal||0),0); return t>=tg*0.85&&t<=tg*1.1; }).length;
+
+  // Bilancio solo sui giorni con dati
+  const targetForDays = tg * daysWithData.length;
+  const bal = sum - targetForDays;
+  const balStr = (bal >= 0 ? '+' : '') + bal.toLocaleString('it-IT');
+
+  const avgEl = document.getElementById('sAvg');
+  avgEl.textContent = avg.toLocaleString('it-IT');
+  avgEl.className = 'sum-num' + (avg > tg*1.1 ? ' over' : avg >= tg*0.85 ? ' ok' : ' warn');
+
+  document.getElementById('sTot').textContent = sum.toLocaleString('it-IT');
+
+  const okEl = document.getElementById('sOk');
+  okEl.textContent = `${ok}/${daysWithData.length}`;
+  okEl.className = 'sum-num' + (ok === daysWithData.length ? ' ok' : ok > 0 ? ' warn' : '');
+
+  const balEl = document.getElementById('sBal');
+  balEl.textContent = balStr;
+  balEl.className = 'sum-num' + (bal > tg*0.1 ? ' over' : bal < -tg*0.1 ? ' ok' : '');
+
+  const pct = Math.min(Math.round(sum / (tg * daysWithData.length) * 100), 150);
+  const fill = document.getElementById('progFill');
+  fill.style.width = Math.min(pct, 100) + '%';
+  fill.className = 'prog-fill' + (pct > 110 ? ' over' : '');
+  document.getElementById('progLbl').textContent = `${daysWithData.length} giorni tracciati`;
+  document.getElementById('progPct').textContent = pct + '% del target';
+}
+
+// ─── Save ────────────────────────────────────────
+async function saveWeek() {
+  const btn = document.getElementById('saveBtn');
+  const txt = document.getElementById('saveTxt');
+  btn.classList.add('saving'); txt.textContent = '...';
+  const wk = getWeekKey(weekOffset);
+  try {
+    const r = await fetch(`${WORKER}/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ weekKey: wk, days: getWeek().days }),
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    toast(`✓ ${d.saved} righe salvate su Sheets`, 'ok');
+  } catch(e) { toast('Errore: ' + e.message, 'err'); }
+  btn.classList.remove('saving'); txt.textContent = 'Salva';
+}
+
+// ─── UI helpers ───────────────────────────────────
+function showLoader(t) { document.getElementById('loaderTxt').textContent = t; document.getElementById('loader').classList.add('show'); }
+function hideLoader() { document.getElementById('loader').classList.remove('show'); }
+
+let toastTimer;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+// ─── Service Worker ───────────────────────────────
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+
+// ─── Init ─────────────────────────────────────────
+renderHeader();
+loadOrInit();
+</script>
+</body>
+</html>
