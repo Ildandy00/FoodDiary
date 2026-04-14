@@ -249,7 +249,6 @@ textarea.field-input{resize:none;min-height:38px;line-height:1.45}
           <span>kcal</span>
         </div>
         <button class="save-btn-d" onclick="saveDay()">Salva</button>
-        <button class="save-btn-d" style="background:linear-gradient(135deg,#20d4a0,#0f9e75);font-size:12px;padding:7px 12px" onclick="openGeneraPiano()">✨ Settimana</button>
       </div>
     </div>
     <div class="day-nav">
@@ -280,7 +279,10 @@ textarea.field-input{resize:none;min-height:38px;line-height:1.45}
   <div class="hdr">
     <div class="hdr-row" style="margin-bottom:10px">
       <div class="page-title">Ricette</div>
-      <button class="btn primary small" onclick="openNuovaRicetta()">+ Nuova</button>
+      <div style="display:flex;gap:7px">
+        <button class="btn small" style="background:linear-gradient(135deg,rgba(32,212,160,0.15),rgba(15,158,117,0.1));border-color:rgba(32,212,160,0.3);color:var(--green)" onclick="openGeneraPiano()">✨ Crea settimana</button>
+        <button class="btn primary small" onclick="openNuovaRicetta()">+ Nuova</button>
+      </div>
     </div>
     <div class="cat-filter" id="catFilter"></div>
   </div>
@@ -407,21 +409,17 @@ textarea.field-input{resize:none;min-height:38px;line-height:1.45}
   <div class="sheet-scroll">
     <div style="background:rgba(32,212,160,0.08);border:0.5px solid rgba(32,212,160,0.2);border-radius:14px;padding:14px;margin-bottom:18px">
       <div style="font-size:14px;font-weight:600;color:var(--green);margin-bottom:6px">Come funziona</div>
-      <div style="font-size:13px;color:var(--text2);line-height:1.6">L'AI genera un piano completo 7 giorni × 5 pasti bilanciato sul tuo target di <strong id="pianoTargetLabel" style="color:var(--text)">1600</strong> kcal/giorno. Il piano viene scritto nel diario e la lista della spesa generata automaticamente.</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.6">Claude genera 7 ricette fit variate, una per ogni giorno, bilanciate sul target di <strong id="pianoTargetLabel" style="color:var(--text)">1600</strong> kcal/giorno. Le ricette vengono salvate nella libreria e la lista della spesa viene generata automaticamente con gli ingredienti cumulativi.</div>
     </div>
     <div class="field-wrap">
-      <div class="field-lbl">Note per l'AI (opzionale)</div>
-      <textarea class="field-input" id="pianoNote" rows="3" placeholder="es. sono vegetariano, evito glutine, preferisco piatti veloci..."></textarea>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--glass);border:0.5px solid var(--border);border-radius:12px;margin-bottom:10px">
-      <input type="checkbox" id="pianoSovrascivi" checked style="width:18px;height:18px;accent-color:var(--accent)">
-      <label for="pianoSovrascivi" style="font-size:13px;color:var(--text2);cursor:pointer">Sovrascrivi la settimana corrente</label>
+      <div class="field-lbl">Preferenze alimentari (opzionale)</div>
+      <textarea class="field-input" id="pianoNote" rows="3" placeholder="es. vegetariano, no glutine, alto proteico, piatti veloci..."></textarea>
     </div>
     <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--glass);border:0.5px solid var(--border);border-radius:12px;margin-bottom:20px">
       <input type="checkbox" id="pianoSpesa" checked style="width:18px;height:18px;accent-color:var(--accent)">
-      <label for="pianoSpesa" style="font-size:13px;color:var(--text2);cursor:pointer">Genera lista spesa automaticamente</label>
+      <label for="pianoSpesa" style="font-size:13px;color:var(--text2);cursor:pointer">Genera lista spesa cumulativa per ingrediente</label>
     </div>
-    <button class="btn primary" style="width:100%;justify-content:center;padding:14px;font-size:15px" id="btnGeneraPiano" onclick="generaPiano()">✨ Genera piano settimanale</button>
+    <button class="btn primary" style="width:100%;justify-content:center;padding:14px;font-size:15px" id="btnGeneraPiano" onclick="generaPiano()">✨ Genera 7 ricette</button>
     <div id="pianoStatus" style="margin-top:14px;font-size:13px;color:var(--text3);text-align:center;display:none;line-height:1.6"></div>
   </div>
 </div>
@@ -907,107 +905,73 @@ async function generaPiano() {
   const btn = document.getElementById('btnGeneraPiano');
   const status = document.getElementById('pianoStatus');
   const note = document.getElementById('pianoNote').value.trim();
-  const sovrascivi = document.getElementById('pianoSovrascivi').checked;
   const genSpesa = document.getElementById('pianoSpesa').checked;
 
   btn.disabled = true;
   btn.textContent = '⏳ Generazione in corso...';
   status.style.display = 'block';
-  status.textContent = 'L\'AI sta pianificando 35 pasti... (15-20 secondi)';
+  status.textContent = 'Claude sta pianificando la settimana... (20-30 secondi)';
 
   try {
-    // Carica ricette se non già caricate
-    if (!ricette.length) {
-      status.textContent = 'Carico ricette salvate...';
-      try {
-        const r = await fetch(`${W}/ricette`);
-        const d = await r.json();
-        ricette = d.ricette || [];
-      } catch {}
-    }
-
-    status.textContent = '🧠 Claude sta generando il piano settimanale...';
+    status.textContent = '🧠 Genero 7 ricette fit per la settimana...';
     const r = await fetch(`${W}/piano`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         target_kcal: getTarget(),
         note: note || '',
-        ricette: ricette.map(r => ({ nome: r.nome, kcal_porzione: r.kcal_porzione, categoria: r.categoria }))
       })
     });
     const d = await r.json();
     if (d.error) throw new Error(d.error);
+    const ricetteGenerate = d.ricette;
+    if (!ricetteGenerate?.length) throw new Error('Nessuna ricetta generata');
 
-    const piano = d.piano; // array di 7 giorni
-    if (!piano?.length) throw new Error('Piano non valido ricevuto');
-
-    // Scrivi il piano nel diario
-    status.textContent = '📝 Scrivo il piano nel diario...';
-    const wk = getWeekKey(weekOff);
-    if (!weekState[wk]) getWeekData(weekOff);
-
-    for (let di = 0; di < 7; di++) {
-      const giorno = piano[di];
-      if (!giorno?.pasti) continue;
-      const day = weekState[wk][di];
-      if (sovrascivi) {
-        // Reset giorno
-        day.meals.forEach(m => { m.text = ''; m.kcal = null; m.nota = ''; });
-      }
-      for (const pasto of giorno.pasti) {
-        const mi = MEALS.indexOf(pasto.pasto);
-        if (mi < 0) continue;
-        day.meals[mi].text = pasto.descrizione;
-        day.meals[mi].kcal = pasto.kcal;
-        day.meals[mi].nota = '';
-      }
-    }
-
-    // Salva su Sheets
-    status.textContent = '💾 Salvo su Google Sheets...';
-    await fetch(`${W}/save`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ weekKey: wk, days: weekState[wk] })
-    });
-
-    // Genera lista spesa se richiesto
-    if (genSpesa) {
-      status.textContent = '🛒 Genero lista della spesa...';
-      // Estrai ingredienti dal piano come items spesa
-      const spesaItems = [];
-      const seen = new Set();
-      for (const giorno of piano) {
-        for (const pasto of (giorno.pasti || [])) {
-          // Estrai ingredienti principali dalla descrizione
-          const parole = pasto.descrizione.split(/[,+]/).map(p => p.trim()).filter(p => p.length > 2);
-          for (const p of parole) {
-            const key = p.toLowerCase();
-            if (!seen.has(key)) { seen.add(key); spesaItems.push(p); }
-          }
-        }
-      }
-      // Salva su Sheets foglio Spesa
+    // Salva ogni ricetta nella libreria
+    status.textContent = `💾 Salvo ${ricetteGenerate.length} ricette nella libreria...`;
+    let salvate = 0;
+    for (const ric of ricetteGenerate) {
       try {
-        const rows = spesaItems.map(i => [i, '', '', 'Piano settimanale', 'FALSE']);
-        // Prima svuota
-        await fetch(`${W}/spesa`, {
+        const rs = await fetch(`${W}/ricette`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ricetteIds: [], ricetteData: [], pianoPulisci: true, pianoItems: rows })
+          body: JSON.stringify(ric)
         });
+        const ds = await rs.json();
+        if (!ds.error) salvate++;
       } catch {}
     }
 
-    // Aggiorna UI
-    renderDay();
+    // Genera lista spesa cumulativa (il Worker aggrega già per ingrediente)
+    if (genSpesa) {
+      status.textContent = '🛒 Genero lista della spesa cumulativa...';
+      // Ricarica ricette per avere gli ID aggiornati
+      const rr = await fetch(`${W}/ricette`);
+      const dr = await rr.json();
+      ricette = dr.ricette || [];
+      // Prendi le ultime N ricette salvate (quelle appena generate)
+      const ultime = ricette.slice(-ricetteGenerate.length);
+      if (ultime.length) {
+        await fetch(`${W}/spesa`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ricetteIds: ultime.map(r => r.id),
+            ricetteData: ultime
+          })
+        });
+      }
+    }
+
+    // Aggiorna UI ricette
+    await loadRicette();
     document.getElementById('sheetPiano').classList.remove('open');
-    toast(`✓ Piano generato — ${piano.length} giorni pianificati!`, 'ok');
+    switchTab('ricette');
+    toast(`✓ ${salvate} ricette generate e salvate!`, 'ok');
 
   } catch(e) {
     status.textContent = 'Errore: ' + e.message;
-    toast('Errore generazione: ' + e.message, 'err');
+    toast('Errore: ' + e.message, 'err');
   }
 
   btn.disabled = false;
