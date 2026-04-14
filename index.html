@@ -24,8 +24,8 @@
   --safe-top:env(safe-area-inset-top,44px);--safe-bot:env(safe-area-inset-bottom,0px);
   --fs:'Syne',sans-serif;--fb:'DM Sans',sans-serif;
 }
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--fb);overflow:hidden;-webkit-font-smoothing:antialiased}
-body{display:flex;flex-direction:column}
+html,body{height:100%;height:100dvh;background:var(--bg);color:var(--text);font-family:var(--fb);-webkit-font-smoothing:antialiased}
+body{height:100%;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 
 /* ORBS */
 .orb{position:fixed;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0}
@@ -39,7 +39,9 @@ body{display:flex;flex-direction:column}
   background:rgba(10,10,15,0.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
   border-top:0.5px solid var(--border);
   display:flex;gap:6px;
+  transition:transform 0.25s;
 }
+.tabbar.keyboard-open{transform:translateY(100%);pointer-events:none}
 .tab{
   flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
   padding:8px 4px;border-radius:12px;cursor:pointer;transition:background 0.2s;border:none;background:transparent;
@@ -56,7 +58,7 @@ body{display:flex;flex-direction:column}
 
 /* SHARED HEADER */
 .hdr{
-  flex-shrink:0;padding:calc(var(--safe-top)+16px) 18px 12px;
+  flex-shrink:0;padding:calc(var(--safe-top)+8px) 16px 10px;
   background:rgba(10,10,15,0.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
   border-bottom:0.5px solid var(--border);z-index:10;
 }
@@ -65,7 +67,7 @@ body{display:flex;flex-direction:column}
 .page-title{font-family:var(--fs);font-size:20px;font-weight:800;letter-spacing:-0.4px}
 
 /* SCROLL AREA */
-.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px calc(var(--safe-bot)+72px);position:relative;z-index:5}
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px calc(var(--safe-bot)+72px);position:relative;z-index:5;scroll-padding-bottom:320px}
 .scroll::-webkit-scrollbar{display:none}
 
 /* BUTTONS */
@@ -874,8 +876,29 @@ function hideLoader() { document.getElementById('loader').classList.remove('show
 
 // ─── INIT ─────────────────────────────────────────
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
-addIngRow(); // prima riga ingrediente
+addIngRow();
 loadWeekIfNeeded(0).then(renderDay);
+
+// Fix tastiera iOS — scroll campo attivo in vista e nascondi tabbar
+function onFocusIn(e) {
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') {
+    document.querySelector('.tabbar')?.classList.add('keyboard-open');
+    setTimeout(() => {
+      e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 350);
+  }
+}
+function onFocusOut(e) {
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') {
+    setTimeout(() => {
+      if (!document.activeElement || (document.activeElement.tagName !== 'TEXTAREA' && document.activeElement.tagName !== 'INPUT')) {
+        document.querySelector('.tabbar')?.classList.remove('keyboard-open');
+      }
+    }, 100);
+  }
+}
+document.addEventListener('focusin', onFocusIn);
+document.addEventListener('focusout', onFocusOut);
 </script>
 </body>
 </html>
